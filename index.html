@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>名將查詢後台 — Game Admin</title>
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:      #f0f2f5;
+      --bg-surface:   #ffffff;
+      --bg-elevated:  #f5f7fa;
+      --bg-hover:     #eef1f6;
+      --border:       #d8dde6;
+      --border-sub:   #e8ebf0;
+      --gold:         #b07d10;
+      --gold-dim:     #8a6008;
+      --gold-glow:    rgba(176,125,16,.12);
+      --blue:         #1a6fd4;
+      --green:        #15803d;
+      --amber:        #b45309;
+      --red:          #dc2626;
+      --purple:       #7c3aed;
+      --tx-1:         #1a202c;
+      --tx-2:         #4a5568;
+      --tx-3:         #a0aec0;
+      --mono:         'JetBrains Mono', monospace;
+      --sans:         'Noto Sans TC', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-base);
+      color: var(--tx-1);
+      font-family: var(--sans);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 15% 0%, rgba(176,125,16,.04) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 85% 100%, rgba(26,111,212,.04) 0%, transparent 70%);
+    }
+
+    /* ── Header ── */
+    .hdr {
+      height: 60px;
+      background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .hdr-logo { display: flex; align-items: center; gap: 12px; }
+    .hdr-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #f5c842, #c9a030);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 16px;
+      box-shadow: 0 0 18px rgba(245,200,66,.35);
+    }
+    .hdr-title  { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+    .hdr-sub    { font-size: 10px; color: var(--tx-3); font-family: var(--mono); letter-spacing: .12em; }
+    .hdr-meta   { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--tx-3); font-family: var(--mono); }
+    .hdr-dot    {
+      width: 6px; height: 6px;
+      background: var(--green); border-radius: 50%;
+      box-shadow: 0 0 6px var(--green);
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    /* ── Main ── */
+    .main { max-width: 1360px; margin: 0 auto; padding: 28px 32px; }
+
+    /* ── Search ── */
+    .search-wrap { margin-bottom: 28px; }
+    .search-label {
+      font-size: 11px; font-weight: 600; color: var(--tx-3);
+      letter-spacing: .15em; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .search-row { display: flex; gap: 10px; align-items: center; }
+    .search-field {
+      position: relative; flex: 1; max-width: 440px;
+    }
+    .search-ico {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--tx-3); font-size: 14px; pointer-events: none;
+    }
+    .search-inp {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 11px 14px 11px 38px;
+      color: var(--tx-1);
+      font-size: 13px;
+      font-family: var(--mono);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .search-inp::placeholder { color: var(--tx-3); }
+    .search-inp:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px var(--gold-glow);
+    }
+    .search-btn {
+      background: linear-gradient(135deg, #f5c842, #c9a030);
+      border: none; border-radius: 9px;
+      padding: 11px 26px;
+      color: #080c14;
+      font-size: 13px; font-weight: 700; font-family: var(--sans);
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      white-space: nowrap;
+    }
+    .search-btn:hover  { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(245,200,66,.3); }
+    .search-btn:active { transform: translateY(0); }
+    .search-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* ── Player Card ── */
+    .pcard {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .pcard-av {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, #dce4f0, var(--bg-elevated));
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .pcard-name  { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+    .pcard-acct  { font-size: 11px; color: var(--tx-3); font-family: var(--mono); }
+    .pcard-stats { display: flex; gap: 28px; margin-left: auto; }
+    .stat        { text-align: center; }
+    .stat-v      { font-size: 20px; font-weight: 700; font-family: var(--mono); }
+    .stat-l      { font-size: 10px; color: var(--tx-3); margin-top: 2px; }
+
+    /* ── Table Section ── */
+    .tsect {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .tsect-bar {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-sub);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .tsect-title {
+      font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tcnt {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1px 9px;
+      font-size: 10px; color: var(--tx-2); font-family: var(--mono);
+    }
+    .ftabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .ftab {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      color: var(--tx-3);
+      font-size: 11px; font-family: var(--sans);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .ftab.on  { background: var(--bg-elevated); border-color: var(--gold); color: var(--gold); }
+    .ftab:hover:not(.on) { background: var(--bg-elevated); color: var(--tx-2); }
+
+    /* ── Table ── */
+    .twrap { overflow-x: auto; }
+    .dtbl  { width: 100%; border-collapse: collapse; }
+    .dtbl thead th {
+      background: var(--bg-elevated);
+      padding: 9px 16px;
+      text-align: left;
+      font-size: 10px; font-weight: 600;
+      color: var(--tx-3);
+      letter-spacing: .12em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .dtbl tbody tr {
+      border-bottom: 1px solid var(--border-sub);
+      transition: background .12s;
+    }
+    .dtbl tbody tr:last-child { border-bottom: none; }
+    .dtbl tbody tr:hover { background: var(--bg-hover); }
+    .dtbl td { padding: 13px 16px; font-size: 13px; vertical-align: middle; }
+
+    /* ── General Cell ── */
+    .gname { font-weight: 600; font-size: 14px; }
+    .gid   { font-size: 10px; color: var(--tx-3); font-family: var(--mono); }
+
+    /* ── Type Badge ── */
+    .tbadge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .tbadge.perm    { background: rgba(245,200,66,.1);  border: 1px solid rgba(245,200,66,.35); color: var(--gold); }
+    .tbadge.timed   { background: rgba(59,158,255,.1);  border: 1px solid rgba(59,158,255,.35); color: var(--blue); }
+    .tbadge.expired { background: rgba(239,68,68,.1);   border: 1px solid rgba(239,68,68,.35);  color: var(--red);  }
+
+    /* ── Time Info ── */
+    .trow { display: flex; gap: 6px; align-items: baseline; margin-bottom: 3px; }
+    .trow:last-child { margin-bottom: 0; }
+    .tlbl { font-size: 10px; color: var(--tx-3); width: 34px; flex-shrink: 0; }
+    .tval { font-size: 11px; color: var(--tx-2); font-family: var(--mono); }
+    .tval.exp  { color: var(--red); }
+    .tval.soon { color: var(--amber); }
+
+    /* ── Level ── */
+    .lvcell { display: flex; align-items: center; gap: 8px; }
+    .lvnum  { font-size: 17px; font-weight: 700; font-family: var(--mono); min-width: 46px; }
+    .stars  { display: flex; gap: 2px; flex-wrap: wrap; max-width: 60px; }
+    .star   { font-size: 8px; color: var(--gold); opacity: .2; }
+    .star.on{ opacity: 1; }
+
+    /* ── Win Progress ── */
+    .wnums { display: flex; align-items: baseline; gap: 3px; margin-bottom: 5px; }
+    .wcur  { font-size: 14px; font-weight: 600; font-family: var(--mono); }
+    .wsep  { font-size: 11px; color: var(--tx-3); }
+    .wtot  { font-size: 12px; color: var(--tx-3); font-family: var(--mono); }
+    .pbar  { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; width: 96px; }
+    .pfill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #f5c842, #3b9eff); }
+    .pfill.max { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .plbl  { font-size: 10px; color: var(--tx-3); margin-top: 3px; }
+
+    /* ── Equipped ── */
+    .eqbadge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+    }
+    .eqbadge.yes { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.3);  color: var(--green); }
+    .eqbadge.no  { background: var(--bg-elevated);  border: 1px solid var(--border);        color: var(--tx-3);  }
+
+    /* ── States ── */
+    .estate {
+      text-align: center; padding: 72px 32px;
+    }
+    .eico   { font-size: 44px; margin-bottom: 14px; opacity: .25; }
+    .etitle { font-size: 15px; font-weight: 600; color: var(--tx-3); margin-bottom: 6px; }
+    .esub   { font-size: 12px; color: var(--tx-3); opacity: .65; }
+
+    .notfound {
+      background: var(--bg-surface);
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: 12px;
+      padding: 22px 24px;
+      display: flex; align-items: center; gap: 16px;
+      color: var(--red); font-size: 14px;
+    }
+    .notfound-ico { font-size: 22px; flex-shrink: 0; }
+
+    /* ── Loading shimmer ── */
+    .shimmer {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; color: var(--tx-3); font-size: 13px;
+    }
+    .spin {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: rot .6s linear infinite;
+    }
+    @keyframes rot { to { transform: rotate(360deg); } }
+
+    /* ── Hint chips ── */
+    .hints { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .hint-chip {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px; color: var(--tx-3);
+      font-family: var(--mono);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .hint-chip:hover { border-color: var(--gold); color: var(--gold); }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+/* ─── Mock Database ──────────────────────────────────────── */
+const DB = {
+  "player001": {
+    account: "player001", nickname: "天下無敵", server: "S1-龍騰",
+    generals: [
+      { id:"G001", name:"關羽",   emoji:"⚔️",  r:"s", type:"permanent", recruitTime:"2024-03-10 08:22:15", buyTime:null,               expTime:null,                level:8,  wins:340, next:400,  eq:true  },
+      { id:"G002", name:"張飛",   emoji:"🪖",  r:"a", type:"permanent", recruitTime:"2024-04-02 15:11:30", buyTime:null,               expTime:null,                level:5,  wins:89,  next:120,  eq:false },
+      { id:"G003", name:"趙雲",   emoji:"🛡️", r:"s", type:"timed",     recruitTime:null,                  buyTime:"2025-11-01 00:00:00", expTime:"2026-07-31 23:59:59", level:7,  wins:210, next:280,  eq:true  },
+      { id:"G004", name:"呂布",   emoji:"🗡️", r:"s", type:"timed",     recruitTime:null,                  buyTime:"2025-06-15 12:00:00", expTime:"2025-09-15 23:59:59", level:10, wins:640, next:null, eq:false },
+      { id:"G005", name:"諸葛亮", emoji:"📜",  r:"a", type:"permanent", recruitTime:"2025-01-20 09:45:00", buyTime:null,               expTime:null,                level:3,  wins:28,  next:50,   eq:false },
+      { id:"G006", name:"黃忠",   emoji:"🏹",  r:"b", type:"timed",     recruitTime:null,                  buyTime:"2026-04-01 00:00:00", expTime:"2026-05-25 23:59:59", level:2,  wins:15,  next:30,   eq:false },
+    ]
+  },
+  "admin_test": {
+    account: "admin_test", nickname: "測試帳號", server: "S2-鳳凰",
+    generals: [
+      { id:"G007", name:"曹操", emoji:"👑",  r:"s", type:"permanent", recruitTime:"2024-01-05 10:00:00", buyTime:null,               expTime:null,                level:10, wins:820, next:null, eq:true  },
+      { id:"G008", name:"周瑜", emoji:"🎭",  r:"a", type:"timed",     recruitTime:null,                  buyTime:"2026-03-01 00:00:00", expTime:"2026-08-01 23:59:59", level:6,  wins:155, next:200,  eq:true  },
+      { id:"G009", name:"孫策", emoji:"🌊",  r:"b", type:"timed",     recruitTime:null,                  buyTime:"2025-10-01 00:00:00", expTime:"2026-02-01 23:59:59", level:4,  wins:60,  next:80,   eq:false },
+      { id:"G010", name:"司馬懿",emoji:"🦉",  r:"s", type:"permanent", recruitTime:"2025-08-18 14:30:00", buyTime:null,               expTime:null,                level:9,  wins:510, next:600,  eq:false },
+    ]
+  },
+  "warrior888": {
+    account: "warrior888", nickname: "龍之戰士", server: "S1-龍騰",
+    generals: []
+  }
+};
+
+const HINTS = ["player001","admin_test","warrior888"];
+
+/* ─── Helpers ────────────────────────────────────────────── */
+function isExpired(t)      { return t ? new Date(t) < new Date() : false; }
+function isSoon(t)         { if(!t) return false; const d=new Date(t)-new Date(); return d>0&&d<14*864e5; }
+function fmt(s) {
+  if(!s) return '—';
+  const d=new Date(s);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} `
+       + `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+/* ─── Sub-components ─────────────────────────────────────── */
+function TypeBadge({g}) {
+  if(g.type==='permanent') return <span className="tbadge perm">♾ 永久版</span>;
+  if(isExpired(g.expTime)) return <span className="tbadge expired">✕ 已到期</span>;
+  return <span className="tbadge timed">⏱ 時效版</span>;
+}
+
+function TimeInfo({g}) {
+  if(g.type==='permanent') return (
+    <div>
+      <div className="trow"><span className="tlbl">招募</span><span className="tval">{fmt(g.recruitTime)}</span></div>
+    </div>
+  );
+  const exp=isExpired(g.expTime), soon=isSoon(g.expTime);
+  return (
+    <div>
+      <div className="trow"><span className="tlbl">購買</span><span className="tval">{fmt(g.buyTime)}</span></div>
+      <div className="trow">
+        <span className="tlbl">到期</span>
+        <span className={`tval${exp?' exp':soon?' soon':''}`}>
+          {fmt(g.expTime)}
+          {soon&&!exp&&<span style={{marginLeft:5,fontSize:10,color:'var(--amber)'}}>▲ 即將到期</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function WinProgress({wins,next}) {
+  if(next===null) return (
+    <div>
+      <div className="wnums"><span className="wcur" style={{color:'var(--gold)'}}>{wins}</span><span className="wsep" style={{color:'var(--gold)'}}>勝場</span></div>
+      <div className="pbar"><div className="pfill max" style={{width:'100%'}}></div></div>
+      <div className="plbl" style={{color:'var(--gold)'}}>✦ 已滿級</div>
+    </div>
+  );
+  const pct=Math.min(100,(wins/next)*100);
+  return (
+    <div>
+      <div className="wnums">
+        <span className="wcur">{wins}</span>
+        <span className="wsep">/</span>
+        <span className="wtot">{next}</span>
+      </div>
+      <div className="pbar"><div className="pfill" style={{width:`${pct}%`}}></div></div>
+      <div className="plbl">尚差 {next-wins} 場升級</div>
+    </div>
+  );
+}
+
+function LevelCell({level}) {
+  const stars=Array.from({length:10},(_,i)=>i<level);
+  return (
+    <div className="lvcell">
+      <div className="lvnum">Lv.{level}</div>
+      <div className="stars">{stars.map((on,i)=><span key={i} className={`star${on?' on':''}`}>★</span>)}</div>
+    </div>
+  );
+}
+
+/* ─── Table ──────────────────────────────────────────────── */
+function GenTable({generals}) {
+  const [f,setF]=useState('all');
+  const filtered=useMemo(()=>{
+    if(f==='all')      return generals;
+    if(f==='perm')     return generals.filter(g=>g.type==='permanent');
+    if(f==='timed')    return generals.filter(g=>g.type==='timed'&&!isExpired(g.expTime));
+    if(f==='expired')  return generals.filter(g=>isExpired(g.expTime));
+    if(f==='equipped') return generals.filter(g=>g.eq);
+    return generals;
+  },[generals,f]);
+
+  const c={
+    all:     generals.length,
+    perm:    generals.filter(g=>g.type==='permanent').length,
+    timed:   generals.filter(g=>g.type==='timed'&&!isExpired(g.expTime)).length,
+    expired: generals.filter(g=>isExpired(g.expTime)).length,
+    equipped:generals.filter(g=>g.eq).length,
+  };
+  const TABS=[
+    {k:'all','l':'全部'},
+    {k:'perm','l':'永久版'},
+    {k:'timed','l':'時效版'},
+    {k:'expired','l':'已到期'},
+    {k:'equipped','l':'已裝備'},
+  ];
+
+  if(generals.length===0) return (
+    <div className="tsect">
+      <div className="estate">
+        <div className="eico">⚔️</div>
+        <div className="etitle">尚未擁有任何名將</div>
+        <div className="esub">此玩家目前沒有名將資料</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="tsect">
+      <div className="tsect-bar">
+        <div className="tsect-title">
+          名將列表
+          <span className="tcnt">{filtered.length} / {generals.length}</span>
+        </div>
+        <div className="ftabs">
+          {TABS.map(t=>(
+            <button key={t.k} className={`ftab${f===t.k?' on':''}`} onClick={()=>setF(t.k)}>
+              {t.l}{c[t.k]>0&&<span style={{opacity:.55}}> ({c[t.k]})</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="twrap">
+        <table className="dtbl">
+          <thead>
+            <tr>
+              <th>名將</th>
+              <th>版本類型</th>
+              <th>時間資訊</th>
+              <th>等級</th>
+              <th>勝場 / 升級條件</th>
+              <th>裝備狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(g=>(
+              <tr key={g.id}>
+                <td>
+                  <div className="gname">{g.name}</div>
+                </td>
+                <td><TypeBadge g={g}/></td>
+                <td><TimeInfo g={g}/></td>
+                <td><LevelCell level={g.level}/></td>
+                <td><WinProgress wins={g.wins} next={g.next}/></td>
+                <td>
+                  <span className={`eqbadge ${g.eq?'yes':'no'}`}>
+                    {g.eq?'✓ 裝備中':'— 未裝備'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Player Card ─────────────────────────────────────────── */
+function PCard({p}) {
+  const gs=p.generals;
+  const stats=[
+    {v:gs.length,               l:'名將總數',  c:'var(--tx-1)'},
+    {v:gs.filter(g=>g.type==='permanent').length, l:'永久版', c:'var(--gold)'},
+    {v:gs.filter(g=>g.type==='timed'&&!isExpired(g.expTime)).length, l:'時效版', c:'var(--blue)'},
+    {v:gs.filter(g=>g.eq).length, l:'已裝備', c:'var(--green)'},
+  ];
+  return (
+    <div className="pcard">
+      <div className="pcard-av">👤</div>
+      <div>
+        <div className="pcard-name">{p.nickname}</div>
+        <div className="pcard-acct">{p.account} · {p.server}</div>
+      </div>
+      <div className="pcard-stats">
+        {stats.map((s,i)=>(
+          <div key={i} className="stat">
+            <div className="stat-v" style={{color:s.c}}>{s.v}</div>
+            <div className="stat-l">{s.l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── App ─────────────────────────────────────────────────── */
+function App() {
+  const [q,setQ]=useState('');
+  const [state,setState]=useState('idle'); // idle | loading | found | notfound
+  const [result,setResult]=useState(null);
+
+  function search(acct) {
+    const v=(acct||q).trim();
+    if(!v) return;
+    setQ(v);
+    setState('loading');
+    setTimeout(()=>{
+      const r=DB[v.toLowerCase()]||null;
+      setResult(r);
+      setState(r?'found':'notfound');
+    },420);
+  }
+
+  const today=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});
+
+  return (
+    <div>
+      <header className="hdr">
+        <div className="hdr-logo">
+          <div className="hdr-icon">⚔</div>
+          <div>
+            <div className="hdr-title">名將查詢後台</div>
+            <div className="hdr-sub">GENERAL ADMIN SYSTEM</div>
+          </div>
+        </div>
+        <div className="hdr-meta">
+          <div className="hdr-dot"></div>
+          ONLINE · {today}
+        </div>
+      </header>
+
+      <div className="main">
+        {/* Search */}
+        <div className="search-wrap">
+          <div className="search-label">玩家帳號查詢</div>
+          <div className="search-row">
+            <div className="search-field">
+              <span className="search-ico">⌕</span>
+              <input
+                className="search-inp"
+                placeholder="輸入玩家帳號…"
+                value={q}
+                onChange={e=>setQ(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&search()}
+              />
+            </div>
+            <button className="search-btn" onClick={()=>search()} disabled={state==='loading'}>
+              {state==='loading'?'查詢中…':'查詢'}
+            </button>
+          </div>
+          <div className="hints">
+            <span style={{fontSize:10,color:'var(--tx-3)',alignSelf:'center'}}>範例帳號：</span>
+            {HINTS.map(h=>(
+              <span key={h} className="hint-chip" onClick={()=>search(h)}>{h}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Results */}
+        {state==='loading' && (
+          <div className="shimmer"><div className="spin"></div>資料載入中…</div>
+        )}
+        {state==='notfound' && (
+          <div className="notfound">
+            <span className="notfound-ico">✕</span>
+            <div>
+              <div style={{fontWeight:600,marginBottom:4}}>查無玩家</div>
+              <div style={{fontSize:12,opacity:.7}}>帳號「{q}」不存在，請確認輸入是否正確。</div>
+            </div>
+          </div>
+        )}
+        {state==='found' && result && (
+          <>
+            <PCard p={result}/>
+            <GenTable generals={result.generals}/>
+          </>
+        )}
+        {state==='idle' && (
+          <div className="tsect">
+            <div className="estate">
+              <div className="eico">🔍</div>
+              <div className="etitle">請輸入玩家帳號開始查詢</div>
+              <div className="esub">可查詢玩家名將擁有狀態、版本類型、等級與裝備資訊</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window,{App});
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
