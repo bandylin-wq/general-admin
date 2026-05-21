@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>藏品排行榜</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: radial-gradient(ellipse at center, #3a1f0e 0%, #1a0a04 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Microsoft JhengHei', '微軟正黑體', 'PingFang TC', sans-serif;
+  }
+
+  /* ── 主容器 ── */
+  .board {
+    width: 460px;
+    background: linear-gradient(175deg, #7a4c28 0%, #5c3418 100%);
+    border-radius: 18px;
+    border: 3px solid #c8922a;
+    box-shadow: 0 0 0 1px #7a5010, 0 8px 40px rgba(0,0,0,0.7),
+                inset 0 1px 0 rgba(255,220,100,0.15);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── 標題列 ── */
+  .board-header {
+    background: linear-gradient(180deg, #5c3418 0%, #4a2810 100%);
+    border-bottom: 2px solid #c8922a;
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .board-header-title {
+    font-size: 18px; font-weight: bold;
+    color: #f0d070; letter-spacing: 3px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
+  .back-btn {
+    position: absolute; left: 14px;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #8B6B30, #6B4B18);
+    border: 2px solid #c8922a; color: #f0d070;
+    font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: filter 0.15s;
+  }
+  .back-btn:hover { filter: brightness(1.2); }
+  .help-btn {
+    position: absolute; right: 14px;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #8B6B30, #6B4B18);
+    border: 2px solid #c8922a; color: #f0d070;
+    font-size: 15px; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: filter 0.15s;
+    font-style: italic;
+  }
+  .help-btn:hover { filter: brightness(1.2); }
+
+  /* ── Tab 列 ── */
+  .tab-bar {
+    display: flex; padding: 10px 10px 0; gap: 6px;
+    background: linear-gradient(180deg, #4a2810 0%, #5c3418 100%);
+  }
+  .tab-btn {
+    flex: 1; padding: 9px 4px 8px;
+    font-family: inherit; font-size: 12px; font-weight: bold;
+    cursor: pointer; border-radius: 8px 8px 0 0;
+    border: 2px solid #a07030; border-bottom: none;
+    background: linear-gradient(180deg, #7a5030 0%, #5c3A18 100%);
+    color: #c09040; transition: all 0.18s ease; letter-spacing: 0.5px;
+  }
+  .tab-btn:hover { color: #e0b060; border-color: #c09040; }
+  .tab-btn.active {
+    background: linear-gradient(180deg, #3d6b3a 0%, #2d5228 100%);
+    color: #f0d870; border-color: #e0c050;
+    box-shadow: 0 -2px 8px rgba(200,180,50,0.2);
+  }
+  .tab-icon { display: block; font-size: 16px; margin-bottom: 2px; }
+
+  /* ── 時間週期條 ── */
+  .period-bar {
+    background: linear-gradient(90deg, #3d6b3a 0%, #265022 100%);
+    padding: 6px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(200,160,60,0.25);
+  }
+  .period-main {
+    font-size: 13px; font-weight: bold; color: #f0d870;
+    letter-spacing: 1px;
+  }
+  .period-sub {
+    font-size: 10px; color: #88b878; letter-spacing: 0.5px;
+  }
+
+  /* ── 前三名 ── */
+  .top3-wrap {
+    background: linear-gradient(180deg, #3d6b3a 0%, #265022 100%);
+    padding: 14px 10px 16px;
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: 8px; border-bottom: 3px solid #c8922a; min-height: 180px;
+  }
+  .top3-card {
+    flex: 1; background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(200,160,60,0.3); border-radius: 10px;
+    padding: 10px 6px 10px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: transform 0.15s;
+  }
+  .top3-card.r1 {
+    transform: translateY(-14px);
+    border-color: rgba(240,200,50,0.6); background: rgba(0,0,0,0.28);
+  }
+  .rank-medal {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 900;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5); flex-shrink: 0;
+  }
+  .medal-1 { background: linear-gradient(135deg, #ffe566, #c88000); color: #5a2800; }
+  .medal-2 { background: linear-gradient(135deg, #e0e0e0, #909090); color: #202020; }
+  .medal-3 { background: linear-gradient(135deg, #d08040, #7a3800); color: #ffd090; }
+  .top3-avatar {
+    border-radius: 8px; border: 2px solid rgba(200,160,60,0.45);
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; color: white; flex-shrink: 0; font-size: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .top3-card.r1 .top3-avatar { border-color: rgba(240,200,50,0.8); }
+  .top3-name {
+    font-size: 11px; color: #e8c870; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2;
+  }
+  .top3-score-lbl { font-size: 9px; color: #90c080; }
+  .top3-score-val { font-size: 13px; color: #ffd040; font-weight: bold; line-height: 1.2; }
+
+  /* ── 列表 ── */
+  .list-area { background: linear-gradient(180deg, #e8c98a 0%, #cda84a 100%); }
+  .list-head {
+    display: grid; grid-template-columns: 58px 1fr 108px;
+    padding: 7px 12px;
+    background: linear-gradient(90deg, #c89040, #a07228);
+    color: #5a2c00; font-size: 12px; font-weight: bold;
+    border-bottom: 1px solid rgba(160,120,40,0.4);
+  }
+  .list-head span:last-child { text-align: right; }
+  .list-scroll { max-height: 230px; overflow-y: auto; }
+  .list-scroll::-webkit-scrollbar { width: 5px; }
+  .list-scroll::-webkit-scrollbar-track { background: #c89040; }
+  .list-scroll::-webkit-scrollbar-thumb { background: #6b3c10; border-radius: 3px; }
+  .list-row {
+    display: grid; grid-template-columns: 58px 1fr 108px;
+    padding: 7px 12px; align-items: center;
+    border-bottom: 1px solid rgba(160,118,38,0.22);
+    transition: background 0.1s;
+  }
+  .list-row:nth-child(even) { background: rgba(255,255,255,0.07); }
+  .list-row:hover { background: rgba(255,255,255,0.15); }
+  .list-rank { font-size: 20px; font-weight: 900; color: #6a3a00; }
+  .list-player { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .list-avatar {
+    border-radius: 6px; border: 1.5px solid rgba(160,110,30,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold; color: white; flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .list-name { font-size: 13px; color: #3a1800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list-score { text-align: right; font-size: 13px; font-weight: bold; color: #5a2c00; }
+  .empty-row { text-align: center; color: #8b5c20; font-size: 13px; padding: 22px; letter-spacing: 1px; }
+
+  /* ── 當前玩家 ── */
+  .current-row {
+    display: grid; grid-template-columns: 58px 1fr 108px;
+    padding: 10px 12px; align-items: center;
+    background: linear-gradient(90deg, #c86010, #a04808);
+    border-top: 2px solid #c8922a;
+  }
+  .current-row .list-rank { color: #ffd840; font-size: 18px; }
+  .current-row .list-name { color: #fff0d0; }
+  .current-row .list-score { color: #ffd840; }
+
+  /* ── 說明頁 Overlay ── */
+  .help-overlay {
+    position: absolute; inset: 0; z-index: 100;
+    background: rgba(20,8,2,0.88);
+    display: flex; flex-direction: column;
+    animation: fadeIn 0.2s ease;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .help-header {
+    background: linear-gradient(180deg, #5c3418 0%, #4a2810 100%);
+    border-bottom: 2px solid #c8922a;
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; flex-shrink: 0;
+  }
+  .help-header-title { font-size: 16px; font-weight: bold; color: #f0d070; letter-spacing: 2px; }
+  .help-close {
+    position: absolute; right: 14px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #8B6B30, #6B4B18);
+    border: 2px solid #c8922a; color: #f0d070;
+    font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .help-close:hover { filter: brightness(1.2); }
+
+  .help-body {
+    flex: 1; overflow-y: auto; padding: 16px 16px 20px;
+  }
+  .help-body::-webkit-scrollbar { width: 4px; }
+  .help-body::-webkit-scrollbar-track { background: transparent; }
+  .help-body::-webkit-scrollbar-thumb { background: #7a4c20; border-radius: 2px; }
+
+  .help-section { margin-bottom: 18px; }
+  .help-section-title {
+    font-size: 13px; font-weight: bold; color: #f0d070;
+    border-left: 3px solid #c8922a; padding-left: 8px;
+    margin-bottom: 10px; letter-spacing: 1px;
+  }
+
+  .help-card {
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(200,160,60,0.25);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+  }
+  .help-card-label {
+    font-size: 12px; font-weight: bold; color: #e8c060; margin-bottom: 4px;
+  }
+  .help-card-desc { font-size: 11px; color: #c0a870; line-height: 1.7; }
+
+  .star-table { width: 100%; border-collapse: collapse; }
+  .star-table th {
+    background: rgba(200,160,60,0.2); color: #f0d070;
+    font-size: 11px; padding: 6px 10px; text-align: center;
+    border-bottom: 1px solid rgba(200,160,60,0.3);
+  }
+  .star-table td {
+    font-size: 11px; color: #d0b870; padding: 7px 10px; text-align: center;
+    border-bottom: 1px solid rgba(200,160,60,0.12);
+  }
+  .star-table tr:last-child td { border-bottom: none; }
+  .star-table td:first-child { text-align: left; }
+
+  .help-note {
+    background: rgba(200,120,20,0.15); border: 1px solid rgba(200,140,30,0.3);
+    border-radius: 6px; padding: 10px 12px;
+  }
+  .help-note li {
+    font-size: 11px; color: #c8a858; line-height: 1.8; list-style: none;
+    padding-left: 14px; position: relative;
+  }
+  .help-note li::before { content: '◆'; position: absolute; left: 0; color: #c8922a; font-size: 8px; top: 3px; }
+</style>
+</head>
+<body>
+<div class="board" id="board"></div>
+
+<script>
+const NOW = new Date();
+const CUR_YEAR  = NOW.getFullYear();
+const CUR_MONTH = NOW.getMonth() + 1;
+const LAST_DAY  = new Date(CUR_YEAR, CUR_MONTH, 0).getDate(); // 當月最後一天
+
+const PLAYERS = [
+  {id:1,  name:'g60204758',       color:'#b04090'},
+  {id:2,  name:'不要鐵齒跟我玩',   color:'#3870c0'},
+  {id:3,  name:'下快一點好嗎要快', color:'#7040b0'},
+  {id:4,  name:'StarCollector99', color:'#c07030'},
+  {id:5,  name:'無聊',            color:'#308060'},
+  {id:6,  name:'至死方休',         color:'#c03838'},
+  {id:7,  name:'x89955689',       color:'#208898'},
+  {id:8,  name:'m02528059',       color:'#a0a020'},
+  {id:9,  name:'寶物獵人',         color:'#5858a8'},
+  {id:10, name:'LegendHunter',    color:'#a05050'},
+  {id:11, name:'晨星收藏家',       color:'#3090a0'},
+  {id:12, name:'lucky88888',      color:'#c04040'},
+  {id:13, name:'夢境旅人',         color:'#6040a0'},
+  {id:14, name:'PeachBlossom',    color:'#c06080'},
+  {id:15, name:'天外飛仙',         color:'#40a060'},
+  {id:16, name:'夜行者007',        color:'#404080'},
+  {id:17, name:'RubyDragon',      color:'#a02020'},
+  {id:18, name:'竹林七賢',         color:'#507030'},
+  {id:19, name:'moonlight99',     color:'#5080b0'},
+  {id:20, name:'花開富貴',         color:'#b07060'},
+  {id:21, name:'玉兔搗藥',         color:'#90a040'},
+  {id:22, name:'SilverWind',      color:'#608090'},
+];
+
+const RAW = {
+  monthly: [312,287,261,248,195,183,162,144,127,103,98,87,82,76,71,65,58,52,47,43,38,34],
+  alltime: [2840,2615,2480,2203,1967,1845,1632,1478,1320,1105,998,876,820,756,701,645,582,521,467,432,385,341],
+};
+
+const TABS = [
+  {
+    key:'monthly',
+    label:'月積分榜',
+    icon:'🏆',
+    col:'月積分',
+    periodMain: `${CUR_YEAR}年${CUR_MONTH}月`,
+    periodSub:  `每月 ${LAST_DAY} 日 10:00 結算發獎 · 結算後重置`,
+  },
+  {
+    key:'alltime',
+    label:'總積分榜',
+    icon:'📜',
+    col:'總積分',
+    periodMain: '歷史全記錄',
+    periodSub:  `每月 ${LAST_DAY} 日 10:00 結算 · 積分持續累積不歸零`,
+  },
+];
+
+const ME = {id:99, name:'是就4愛玩', color:'#d06010'};
+const MY_SCORE = {monthly:0, alltime:85};
+
+let activeTab = 0;
+
+/* ── 工具函式 ── */
+function getData() {
+  const k = TABS[activeTab].key;
+  return PLAYERS.map((p,i) => ({...p, score: RAW[k][i]}))
+    .sort((a,b) => b.score - a.score);
+}
+
+function myRank(data) {
+  const s = MY_SCORE[TABS[activeTab].key];
+  const n = data.filter(p => p.score > s).length + 1;
+  return n > 100 ? '100+' : String(n);
+}
+
+function scoreHTML(n, key) {
+  if (n >= 10000)
+    return `${(n/10000).toFixed(1)}<span style="font-size:10px">萬pt</span>`;
+  if (n >= 1000)
+    return `${n.toLocaleString()}<span style="font-size:10px">pt</span>`;
+  return `${n}<span style="font-size:10px">pt</span>`;
+}
+
+function avHTML(p, sz) {
+  return `<div class="list-avatar" style="width:${sz}px;height:${sz}px;background:${p.color};font-size:${Math.round(sz*.38)}px">${p.name[0]}</div>`;
+}
+
+/* ── 說明頁內容 ── */
+function renderHelp() {
+  return `<div class="help-overlay" id="helpOverlay">
+    <div class="help-header">
+      <span class="help-header-title">排行榜說明</span>
+      <button class="help-close" onclick="closeHelp()">✕</button>
+    </div>
+    <div class="help-body">
+
+      <div class="help-section">
+        <div class="help-section-title">兩大排行榜</div>
+        <div class="help-card">
+          <div class="help-card-label">🏆 月積分榜</div>
+          <div class="help-card-desc">計算「當月新解鎖藏品」所獲得的積分。每個月最後一天 10:00 依名次結算並發送領獎信，結算後積分歸零重新開始。</div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-label">📜 總積分榜</div>
+          <div class="help-card-desc">計算「所有時間解鎖藏品」所獲得的積分。每個月最後一天 10:00 依名次結算並發送領獎信，結算後積分不歸零持續累積。</div>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">積分計算方式</div>
+        <div class="help-card" style="padding:0;overflow:hidden">
+          <table class="star-table">
+            <thead>
+              <tr><th>星級</th><th>1星</th><th>2星</th><th>3星</th><th>4星</th><th>5星</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align:left;color:#f0d070">解鎖1個可得</td>
+                <td>1分</td><td>3分</td><td>6分</td><td>10分</td><td>15分</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">可得獎勵</div>
+        <div class="help-card-label" style="color:#f0d070;font-size:11px;margin-bottom:6px;padding:0 2px">🏆 月積分榜</div>
+        <div class="help-card" style="padding:0;overflow:hidden;margin-bottom:10px">
+          <table class="star-table">
+            <thead>
+              <tr><th>名次</th><th>獎勵1</th><th>獎勵2</th><th>獎勵3</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="text-align:left">第 1 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+              <tr><td style="text-align:left">第 2 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+              <tr><td style="text-align:left">第 3 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+              <tr><td style="text-align:left">第 4～10 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="help-card-label" style="color:#f0d070;font-size:11px;margin-bottom:6px;padding:0 2px">📜 總積分榜</div>
+        <div class="help-card" style="padding:0;overflow:hidden;margin-bottom:10px">
+          <table class="star-table">
+            <thead>
+              <tr><th>名次</th><th>獎勵1</th><th>獎勵2</th><th>獎勵3</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="text-align:left">第 1 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+              <tr><td style="text-align:left">第 2 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+              <tr><td style="text-align:left">第 3 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+              <tr><td style="text-align:left">第 4～10 名</td><td>獎勵1</td><td>獎勵2</td><td>獎勵3</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="help-note" style="margin-top:2px">
+          <ul>
+            <li>每月最後一天 10:00 後至 大廳 &gt; 好友／訊息 &gt; 信件箱 領取</li>
+            <li>領獎期限為 <span style="color:#ffd840;font-weight:bold">7天</span>，逾時不候，請盡快領取！</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">注意事項</div>
+        <div class="help-note">
+          <ul>
+            <li>排行榜每 2 小時更新一次，名次可能隨時變動</li>
+            <li>碎片集齊後，需手動點擊藏品「解鎖」後，才會計入積分與排行</li>
+            <li>若積分相同時，以較早達成該積分的玩家排名優先</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+/* ── 渲染主體 ── */
+function renderTabs() {
+  return `<div class="tab-bar">
+    ${TABS.map((t,i) => `
+      <button class="tab-btn${i===activeTab?' active':''}" onclick="setTab(${i})">
+        <span class="tab-icon">${t.icon}</span>${t.label}
+      </button>`).join('')}
+  </div>`;
+}
+
+function renderPeriod() {
+  const t = TABS[activeTab];
+  return `<div class="period-bar">
+    <span class="period-main">${t.periodMain}</span>
+    <span class="period-sub">${t.periodSub}</span>
+  </div>`;
+}
+
+function renderTop3(data) {
+  const k = TABS[activeTab].key;
+  const slots = [data[1], data[0], data[2]];
+  const ranks  = [2, 1, 3];
+  const mcls   = ['medal-2','medal-1','medal-3'];
+  const rcls   = ['r2','r1','r3'];
+  const sz     = [52, 64, 52];
+
+  return `<div class="top3-wrap">
+    ${slots.map((p,i) => !p ? `<div style="flex:1"></div>` : `
+      <div class="top3-card ${rcls[i]}">
+        <div class="rank-medal ${mcls[i]}">${ranks[i]}</div>
+        <div class="top3-avatar" style="width:${sz[i]}px;height:${sz[i]}px;background:${p.color};font-size:${Math.round(sz[i]*.36)}px">${p.name[0]}</div>
+        <div class="top3-name" style="max-width:${sz[i]+20}px">${p.name}</div>
+        <div class="top3-score-lbl">${TABS[activeTab].col}</div>
+        <div class="top3-score-val">${scoreHTML(p.score, k)}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderList(data) {
+  const k = TABS[activeTab].key;
+  const rows = data.slice(3, 100);
+  return `
+    <div class="list-head">
+      <span>名次</span><span>玩家</span><span>${TABS[activeTab].col}</span>
+    </div>
+    <div class="list-scroll">
+      ${rows.length === 0
+        ? `<div class="empty-row">目前無人上榜</div>`
+        : rows.map((p,i) => `
+          <div class="list-row">
+            <span class="list-rank">${i+4}</span>
+            <div class="list-player">${avHTML(p,34)}<span class="list-name">${p.name}</span></div>
+            <span class="list-score">${scoreHTML(p.score,k)}</span>
+          </div>`).join('')}
+    </div>`;
+}
+
+function renderMe(data) {
+  const k  = TABS[activeTab].key;
+  const sc = MY_SCORE[k];
+  return `
+    <div class="current-row">
+      <span class="list-rank" style="color:#ffd840;font-size:18px">${myRank(data)}</span>
+      <div class="list-player">${avHTML(ME,34)}<span class="list-name" style="color:#fff0d0">${ME.name}</span></div>
+      <span class="list-score" style="color:#ffd840">${scoreHTML(sc,k)}</span>
+    </div>`;
+}
+
+function render() {
+  const data = getData();
+  document.getElementById('board').innerHTML = `
+    <div class="board-header">
+      <button class="back-btn" onclick="history.back()">◀</button>
+      <span class="board-header-title">藏品排行榜</span>
+      <button class="help-btn" onclick="openHelp()">？</button>
+    </div>
+    ${renderTabs()}
+    ${renderPeriod()}
+    ${renderTop3(data)}
+    <div class="list-area">
+      ${renderList(data)}
+      ${renderMe(data)}
+    </div>`;
+}
+
+window.setTab  = i => { activeTab = i; render(); };
+window.openHelp = () => { document.getElementById('board').insertAdjacentHTML('beforeend', renderHelp()); };
+window.closeHelp = () => { const el = document.getElementById('helpOverlay'); if(el) el.remove(); };
+render();
+</script>
+</body>
+</html>
